@@ -1,59 +1,41 @@
 # CLAUDE.md
 
-This file provides guidance for AI assistants working with this repository.
+## Sobre Alejandro
 
-## Project Overview
+- **Nombre**: Alejandro Abad Sebastián
+- **Email**: alejandroabadssebastian@gmail.com
+- **Perfil**: Ingeniero con interés en desarrollo móvil (Swift) y scripting (Python)
+- **Idioma de trabajo**: Español informal
 
-A beginner Python learning project by Alejandro containing two standalone command-line scripts. No build system, no dependencies, no external services.
+## Cómo responderle
 
-## Repository Structure
+- **Respuestas cortas y directas** — sin relleno, sin explicaciones innecesarias
+- **En español siempre**, salvo que él escriba en inglés
+- **Tono informal** — tuteo, lenguaje natural, sin formalidades
+- **Si algo no está claro, preguntar en una sola frase** — no asumir ni inventar
+- **Sin emojis** salvo que los use él primero
+- **No repetir lo que ya se sabe** — ir al grano
 
-```
-/
-├── Calcualdora.py   # Multi-mode calculator (Spanish-language UI)
-├── worlde.md        # Wordle-style word guessing game (Python code, misnamed as .md)
-└── CLAUDE.md        # This file
-```
+## Stack conocido
 
-## Files
+- **Swift** — desarrollo principal (iOS / macOS)
+- **Python** — scripting y aprendizaje, estilo procedimental, sin dependencias externas, interfaz en español
 
-### Calcualdora.py
-A menu-driven calculator with 5 modes:
-1. Quadratic equation solver (ax² + bx + c = 0)
-2. Unit converter (km, cm, m)
-3. Velocity calculator (linear and angular)
-4. Simple arithmetic (add, subtract, multiply, divide)
-5. Exit
+## Repositorio actual
 
-Entry point: `python Calcualdora.py`
+Proyecto Python de aprendizaje con dos scripts:
+- `Calcualdora.py` — calculadora multi-modo (ecuaciones, conversiones, velocidad, aritmética)
+- `worlde.md` — clon de Wordle en Python (mal nombrado, debería ser `.py`)
 
-### worlde.md
-A Wordle clone where users guess a 5-letter word ("paris") in up to 5 attempts. Uses emoji feedback: ✅ correct position, 🟡 wrong position, ❌ not in word.
+### Issues conocidos
+- `Calcualdora.py` → typo, debería ser `Calculadora.py`
+- `worlde.md` → debería ser `worlde.py`
+- Línea 128 en `Calcualdora.py`: `dsitancia` → `distancia`
+- Palabra hardcodeada en Wordle: `"paris"`
 
-Entry point: `python worlde.md` (note: file has `.md` extension but contains Python code)
+## Notas de desarrollo
 
-## Language and Style Conventions
-
-- **Primary language**: Spanish (UI text, variable names, comments)
-- **Python version**: Python 3.x (uses f-strings)
-- **Style**: Procedural single-file scripts, no classes or modules
-- **Error handling**: `try/except ValueError` for invalid input; `while` loops for input validation
-- **No external dependencies**: Standard library only
-
-## Known Issues
-
-- `Calcualdora.py` is a typo — should be `Calculadora.py`
-- `worlde.md` should be `worlde.py` (it contains Python code)
-- Line 128 in `Calcualdora.py`: variable `dsitancia` is a typo for `distancia`
-- The word guessing game has a hardcoded answer ("paris")
-- No test suite exists
-
-## Development Notes
-
-- No `requirements.txt`, `pyproject.toml`, or any dependency management
-- No CI/CD pipelines
-- No linters or formatters configured
-- Scripts run directly: `python <filename>`
-- Do not add external dependencies without discussion
-- Do not convert to classes/modules unless explicitly requested
-- Preserve the Spanish-language interface in existing scripts
+- No añadir dependencias externas sin preguntar
+- No refactorizar a clases/módulos salvo que se pida
+- Preservar la interfaz en español en los scripts existentes
+- Sin tests, sin CI/CD, sin linters configurados
