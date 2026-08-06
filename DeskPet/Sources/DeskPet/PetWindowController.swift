@@ -22,6 +22,7 @@ final class PetWindowController {
     private var pendingWork: [DispatchWorkItem] = []
     private var mouseMonitor: Any?
     private var currentScreen: NSScreen?
+    private var currentGeometry: PetGeometry?
 
     /// Se avisa cuando la mascota ya está colgando (para mostrar la nota).
     private var onSettled: ((CGRect, NSScreen) -> Void)?
@@ -33,11 +34,9 @@ final class PetWindowController {
         self.preferences = preferences
         self.animator = PetAnimator(preferences: preferences)
 
-        let geometry = PetGeometry(petSize: preferences.petSizeValue)
-        let contentRect = NSRect(origin: .zero, size: geometry.windowSize)
-
-        hostView = PetHostView(frame: contentRect)
-        panel = NSPanel(contentRect: contentRect,
+        let initialRect = NSRect(x: 0, y: 0, width: 400, height: 500)
+        hostView = PetHostView(frame: initialRect)
+        panel = NSPanel(contentRect: initialRect,
                         styleMask: [.borderless, .nonactivatingPanel],
                         backing: .buffered,
                         defer: false)
@@ -56,6 +55,10 @@ final class PetWindowController {
 
         animator.attach(to: hostView)
         hostView.onClick = { [weak self] in self?.dismissEarly() }
+        hostView.onBackingChange = { [weak self] in
+            guard let self, self.state != .hidden else { return }
+            self.animator.refreshArtwork(scale: self.panel.backingScaleFactor)
+        }
 
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -68,8 +71,7 @@ final class PetWindowController {
             forName: .deskPetAppearanceSettingsChanged,
             object: nil, queue: .main
         ) { [weak self] _ in
-            SpriteProvider.invalidate()
-            self?.repositionIfVisible()
+            self?.reapplyAppearance()
         }
     }
 
@@ -88,9 +90,12 @@ final class PetWindowController {
         self.onFinished = onFinished
         currentScreen = screen
 
-        let geometry = PetGeometry(petSize: preferences.petSizeValue)
+        // El arte se rasteriza a la escala de esta pantalla y de él salen las
+        // medidas de la ventana.
+        let geometry = animator.prepareArtwork(scale: screen.backingScaleFactor)
+        currentGeometry = geometry
         layout(geometry: geometry, on: screen)
-        animator.prepare(geometry: geometry)
+        animator.applyGeometry(geometry)
 
         state = .entering
         panel.orderFrontRegardless()
@@ -103,10 +108,10 @@ final class PetWindowController {
             self.notifySettled()
 
             // Pirueta a mitad de la estancia y salida al terminar el tiempo.
-            self.schedule(after: min(1.4, max(duration * 0.25, 0.6))) { [weak self] in
+            self.schedule(after: min(1.6, max(duration * 0.3, 0.8))) { [weak self] in
                 self?.performTrick()
             }
-            self.schedule(after: max(duration, 2.0)) { [weak self] in
+            self.schedule(after: max(duration, 2.5)) { [weak self] in
                 self?.beginExit()
             }
         }
@@ -128,7 +133,7 @@ final class PetWindowController {
         }
     }
 
-    /// Corta el ciclo sin animación (salir de la app, cambios de ajustes).
+    /// Corta el ciclo sin animación (salir de la app).
     func hideImmediately() {
         cancelPendingWork()
         onWillExit?()
@@ -152,7 +157,7 @@ final class PetWindowController {
     }
 
     private func beginExit() {
-        guard state == .idle || state == .trick || state == .entering else { return }
+        guard state == .idle || state == .trick else { return }
         cancelPendingWork()
         state = .exiting
         onWillExit?()
@@ -160,7 +165,6 @@ final class PetWindowController {
         // Deja que la nota termine su fundido antes de que la mascota suba.
         schedule(after: ReminderController.fadeDuration) { [weak self] in
             guard let self, self.state == .exiting else { return }
-            self.animator.stopIdleSway()
             self.animator.playExit { [weak self] in
                 guard let self, self.state == .exiting else { return }
                 self.finishCycle()
@@ -186,34 +190,58 @@ final class PetWindowController {
 
     private func notifySettled() {
         guard let screen = currentScreen else { return }
-        let rectInWindow = animator.petRectInView
-        let rectOnScreen = panel.convertToScreen(rectInWindow)
+        let rectOnScreen = panel.convertToScreen(animator.petRectInView)
         onSettled?(rectOnScreen, screen)
     }
 
     // MARK: - Posición
 
+    /// La ventana es bastante más grande que la ilustración: tiene que dar
+    /// cabida al círculo que barre la pirueta. Por eso los márgenes se miden
+    /// contra el dibujo, no contra el borde de la ventana.
     private func layout(geometry: PetGeometry, on screen: NSScreen) {
         let visible = screen.visibleFrame
         let size = geometry.windowSize
+        let artRect = geometry.petRect(grip: geometry.gripRest)
+
         var origin = NSPoint(
-            x: visible.maxX - preferences.marginRightValue - size.width,
+            x: visible.maxX - preferences.marginRightValue - artRect.maxX,
             y: visible.maxY - preferences.marginTopValue - size.height
         )
-        // No dejar la ventana fuera del área visible en pantallas pequeñas.
-        origin.x = min(max(origin.x, visible.minX), max(visible.maxX - size.width, visible.minX))
-        origin.y = min(max(origin.y, visible.minY), max(visible.maxY - size.height, visible.minY))
 
-        hostView.frame = NSRect(origin: .zero, size: size)
+        // Que el dibujo no se salga del área visible (la ventana transparente sí
+        // puede sobresalir, el personaje no).
+        origin.x = min(origin.x, visible.maxX - artRect.maxX)
+        origin.x = max(origin.x, visible.minX - artRect.minX)
+        origin.y = max(origin.y, visible.minY - artRect.minY)
+        origin.y = min(origin.y, visible.maxY - size.height)
+
         panel.setFrame(NSRect(origin: origin, size: size), display: false)
+        hostView.frame = NSRect(origin: .zero, size: size)
     }
 
     private func repositionIfVisible() {
-        guard state != .hidden else { return }
+        guard state != .hidden, let geometry = currentGeometry else { return }
         guard let screen = currentScreen ?? PetWindowController.activeScreen() else { return }
         currentScreen = screen
-        let geometry = PetGeometry(petSize: preferences.petSizeValue)
         layout(geometry: geometry, on: screen)
+    }
+
+    /// Cambios de arte, tamaño, anclaje o balanceo: se aplican al instante si la
+    /// mascota está colgando tranquila; en plena transición esperan al siguiente
+    /// ciclo para no cortar una animación por la mitad.
+    private func reapplyAppearance() {
+        ArtworkProvider.invalidate()
+        guard state == .idle, let screen = currentScreen else { return }
+
+        animator.stopIdleSway()
+        let geometry = animator.prepareArtwork(scale: screen.backingScaleFactor)
+        currentGeometry = geometry
+        layout(geometry: geometry, on: screen)
+        animator.applyGeometry(geometry)
+        animator.settleAtRest()
+        animator.startIdleSway()
+        updateMouseTransparency()
     }
 
     /// Pantalla donde está el cursor; si no se puede saber, la principal.
@@ -226,8 +254,8 @@ final class PetWindowController {
 
     // MARK: - Ratón
 
-    /// La ventana solo intercepta el ratón cuando el cursor está sobre el sprite;
-    /// el resto del tiempo los clics pasan a las apps de debajo.
+    /// La ventana solo intercepta el ratón cuando el cursor está sobre el
+    /// dibujo; el resto del tiempo los clics pasan a las apps de debajo.
     private func startMouseTracking() {
         guard mouseMonitor == nil else { return }
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in

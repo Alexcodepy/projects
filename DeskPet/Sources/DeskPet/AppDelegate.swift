@@ -83,9 +83,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(NSMenuItem(title: "Preferencias…",
                                 action: #selector(openPreferences),
                                 keyEquivalent: ","))
-        menu.addItem(NSMenuItem(title: "Exportar plantilla de sprites…",
-                                action: #selector(exportSpriteTemplate),
-                                keyEquivalent: ""))
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Salir de DeskPet",
                                 action: #selector(quit),
@@ -120,10 +117,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             preferencesWindowController = PreferencesWindowController(preferences: preferences)
         }
         preferencesWindowController?.present()
-    }
-
-    @objc private func exportSpriteTemplate() {
-        SpriteTemplateExporter.exportInteractively(preferences: preferences)
     }
 
     @objc private func quit() {

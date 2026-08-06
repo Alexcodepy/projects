@@ -25,12 +25,21 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/DeskPet"
 cp "$ROOT/Resources/Info.plist" "$APP/Contents/Info.plist"
 
-# Sprite sheet opcional incluido en el bundle (si existe).
-if [ -f "$ROOT/Resources/pet_sheet.png" ]; then
-    cp "$ROOT/Resources/pet_sheet.png" "$APP/Contents/Resources/pet_sheet.png"
-    echo "    · pet_sheet.png incluido"
-else
-    echo "    · sin pet_sheet.png: se usarán los sprites generados por código"
+# Ilustraciones opcionales empotradas en el bundle: pet.* (pose normal) y
+# pet_trick.* (pose recogida). Se admite pdf, png, svg y tiff.
+ART_FOUND=0
+for NAME in pet pet_trick; do
+    for EXT in pdf png svg tiff; do
+        if [ -f "$ROOT/Resources/$NAME.$EXT" ]; then
+            cp "$ROOT/Resources/$NAME.$EXT" "$APP/Contents/Resources/$NAME.$EXT"
+            echo "    · $NAME.$EXT incluido"
+            ART_FOUND=1
+            break
+        fi
+    done
+done
+if [ "$ART_FOUND" -eq 0 ]; then
+    echo "    · sin ilustración en Resources/: se usará la silueta de respaldo"
 fi
 
 printf 'APPL????' > "$APP/Contents/PkgInfo"

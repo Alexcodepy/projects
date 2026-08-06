@@ -7,7 +7,7 @@ import SwiftUI
 extension Notification.Name {
     /// Se emite cuando cambia algo que afecta al temporizador de aparición.
     static let deskPetScheduleSettingsChanged = Notification.Name("DeskPetScheduleSettingsChanged")
-    /// Se emite cuando cambia algo que afecta al aspecto (tamaño, sprites, posición).
+    /// Se emite cuando cambia algo que afecta al aspecto (arte, tamaño, anclaje…).
     static let deskPetAppearanceSettingsChanged = Notification.Name("DeskPetAppearanceSettingsChanged")
 }
 
@@ -39,13 +39,14 @@ final class Preferences: ObservableObject {
         static let activeStartHour = "activeStartHour"
         static let activeEndHour = "activeEndHour"
         static let onScreenDuration = "onScreenDuration"
-        static let petSize = "petSize"
+        static let petHeight = "petHeight"
         static let messages = "messages"
         static let messageIndex = "messageIndex"
-        static let spriteSheetPath = "spriteSheetPath"
-        static let spriteColumns = "spriteColumns"
-        static let spriteRows = "spriteRows"
-        static let spriteFPS = "spriteFPS"
+        static let artworkPath = "artworkPath"
+        static let trickArtworkPath = "trickArtworkPath"
+        static let anchorX = "anchorX"
+        static let anchorY = "anchorY"
+        static let swingDegrees = "swingDegrees"
         static let marginTop = "marginTop"
         static let marginRight = "marginRight"
     }
@@ -98,54 +99,69 @@ final class Preferences: ObservableObject {
 
     var onScreenDurationValue: TimeInterval { min(max(onScreenDuration, 3), 300) }
 
-    /// Lado del sprite de la mascota en puntos.
-    @Published var petSize: Double {
+    /// Altura de la ilustración en puntos.
+    @Published var petHeight: Double {
         didSet {
-            defaults.set(petSize, forKey: Key.petSize)
+            defaults.set(petHeight, forKey: Key.petHeight)
             notifyAppearance()
         }
     }
 
-    var petSizeValue: CGFloat { CGFloat(min(max(petSize, 60), 400)) }
+    var petHeightValue: CGFloat { CGFloat(min(max(petHeight, 80), 600)) }
+
+    /// Amplitud del balanceo en grados.
+    @Published var swingDegrees: Double {
+        didSet {
+            defaults.set(swingDegrees, forKey: Key.swingDegrees)
+            notifyAppearance()
+        }
+    }
+
+    var swingAmplitudeRadians: CGFloat {
+        CGFloat(min(max(swingDegrees, 0), 30) * Double.pi / 180)
+    }
 
     @Published var messages: [String] {
         didSet { defaults.set(messages, forKey: Key.messages) }
     }
 
-    // MARK: - Sprites
+    // MARK: - Ilustración
 
-    /// Ruta a un sprite sheet propio. Vacío = sprites del bundle o generados.
-    @Published var spriteSheetPath: String {
+    /// Ruta a la ilustración principal (PDF, PNG…). Vacío = silueta de respaldo.
+    @Published var artworkPath: String {
         didSet {
-            defaults.set(spriteSheetPath, forKey: Key.spriteSheetPath)
+            defaults.set(artworkPath, forKey: Key.artworkPath)
             notifyAppearance()
         }
     }
 
-    @Published var spriteColumns: Int {
+    /// Ruta a la pose recogida para la pirueta. Opcional.
+    @Published var trickArtworkPath: String {
         didSet {
-            defaults.set(spriteColumns, forKey: Key.spriteColumns)
+            defaults.set(trickArtworkPath, forKey: Key.trickArtworkPath)
             notifyAppearance()
         }
     }
 
-    @Published var spriteRows: Int {
+    /// Punto donde las manos agarran el hilo, en espacio unitario del layer.
+    /// (0.5, 1.0) = centro del borde superior de la ilustración.
+    @Published var anchorX: Double {
         didSet {
-            defaults.set(spriteRows, forKey: Key.spriteRows)
+            defaults.set(anchorX, forKey: Key.anchorX)
             notifyAppearance()
         }
     }
 
-    @Published var spriteFPS: Double {
+    @Published var anchorY: Double {
         didSet {
-            defaults.set(spriteFPS, forKey: Key.spriteFPS)
+            defaults.set(anchorY, forKey: Key.anchorY)
             notifyAppearance()
         }
     }
 
-    var spriteColumnsValue: Int { min(max(spriteColumns, 1), 32) }
-    var spriteRowsValue: Int { min(max(spriteRows, 1), 32) }
-    var spriteFPSValue: Double { min(max(spriteFPS, 1), 60) }
+    var anchorPointValue: CGPoint {
+        CGPoint(x: min(max(anchorX, 0), 1), y: min(max(anchorY, 0), 1))
+    }
 
     // MARK: - Posición
 
@@ -187,13 +203,14 @@ final class Preferences: ObservableObject {
             Key.activeStartHour: 9,
             Key.activeEndHour: 20,
             Key.onScreenDuration: 10.0,
-            Key.petSize: 140.0,
+            Key.petHeight: 220.0,
             Key.messages: Preferences.defaultMessages,
             Key.messageIndex: 0,
-            Key.spriteSheetPath: "",
-            Key.spriteColumns: 6,
-            Key.spriteRows: 2,
-            Key.spriteFPS: 8.0,
+            Key.artworkPath: "",
+            Key.trickArtworkPath: "",
+            Key.anchorX: 0.5,
+            Key.anchorY: 1.0,
+            Key.swingDegrees: 6.0,
             Key.marginTop: 0.0,
             Key.marginRight: 40.0
         ])
@@ -204,13 +221,14 @@ final class Preferences: ObservableObject {
         activeStartHour = defaults.integer(forKey: Key.activeStartHour)
         activeEndHour = defaults.integer(forKey: Key.activeEndHour)
         onScreenDuration = defaults.double(forKey: Key.onScreenDuration)
-        petSize = defaults.double(forKey: Key.petSize)
+        petHeight = defaults.double(forKey: Key.petHeight)
+        swingDegrees = defaults.double(forKey: Key.swingDegrees)
         let storedMessages = defaults.stringArray(forKey: Key.messages) ?? Preferences.defaultMessages
         messages = storedMessages.isEmpty ? Preferences.defaultMessages : storedMessages
-        spriteSheetPath = defaults.string(forKey: Key.spriteSheetPath) ?? ""
-        spriteColumns = defaults.integer(forKey: Key.spriteColumns)
-        spriteRows = defaults.integer(forKey: Key.spriteRows)
-        spriteFPS = defaults.double(forKey: Key.spriteFPS)
+        artworkPath = defaults.string(forKey: Key.artworkPath) ?? ""
+        trickArtworkPath = defaults.string(forKey: Key.trickArtworkPath) ?? ""
+        anchorX = defaults.double(forKey: Key.anchorX)
+        anchorY = defaults.double(forKey: Key.anchorY)
         marginTop = defaults.double(forKey: Key.marginTop)
         marginRight = defaults.double(forKey: Key.marginRight)
         launchAtLogin = SMAppService.mainApp.status == .enabled
