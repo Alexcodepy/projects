@@ -4,7 +4,9 @@ This file provides guidance for AI assistants working with this repository.
 
 ## Project Overview
 
-A beginner Python learning project by Alejandro containing two standalone command-line scripts. No build system, no dependencies, no external services.
+A personal learning repository by Alejandro. Two standalone Python command-line
+scripts at the root (no build system, no dependencies), plus `DeskPet/`, a
+self-contained native macOS app written in Swift/AppKit.
 
 ## Repository Structure
 
@@ -12,6 +14,7 @@ A beginner Python learning project by Alejandro containing two standalone comman
 /
 ├── Calcualdora.py   # Multi-mode calculator (Spanish-language UI)
 ├── worlde.md        # Wordle-style word guessing game (Python code, misnamed as .md)
+├── DeskPet/         # macOS desktop pet + hourly break reminder (Swift/AppKit)
 └── CLAUDE.md        # This file
 ```
 
@@ -31,6 +34,17 @@ Entry point: `python Calcualdora.py`
 A Wordle clone where users guess a 5-letter word ("paris") in up to 5 attempts. Uses emoji feedback: ✅ correct position, 🟡 wrong position, ❌ not in word.
 
 Entry point: `python worlde.md` (note: file has `.md` extension but contains Python code)
+
+### DeskPet/
+Native macOS app (Swift Package, macOS 13+, AppKit + Core Animation + SwiftUI
+preferences). A pet hanging from a web drops in once an hour to remind you to
+take a break, then leaves. No external dependencies, no private APIs.
+
+Build: `cd DeskPet && make app` (produces `DeskPet/build/DeskPet.app`).
+See `DeskPet/README.md` for the sprite sheet format and full documentation.
+
+Conventions inside `DeskPet/`: Spanish comments and user-facing strings, English
+type and API names, one responsibility per file.
 
 ## Language and Style Conventions
 
