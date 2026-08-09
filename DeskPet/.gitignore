@@ -1,0 +1,15 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Bundle generado por Scripts/make_app.sh
+build/
+
+# Xcode
+*.xcodeproj
+DerivedData/
+xcuserdata/
+
+# macOS
+.DS_Store
