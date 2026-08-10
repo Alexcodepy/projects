@@ -1,3 +1,10 @@
 __pycache__/
 *.pyc
 *.pyo
+
+# Swift / DeskPet
+.build/
+build/
+*.xcodeproj
+.swiftpm/
+DerivedData/
